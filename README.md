@@ -33,6 +33,7 @@ public submission endpoint (the same one your web browser uses).
   remove, or change questions on the Google Form.
 - `requirements.txt` — Python dependencies.
 - `.env.example` — template for your bot token.
+- `Procfile` — tells hosting platforms like Railway how to start the bot.
 
 ## Setup
 
@@ -99,10 +100,11 @@ stays online:
 
 - **A small always-on server / Raspberry Pi**: run it under `systemd` or
   `pm2` so it restarts automatically if it crashes or the machine reboots.
-- **A free/low-cost hosting platform** (e.g. Railway, Render, Fly.io): push
-  this folder as a repo, set `TELEGRAM_BOT_TOKEN` as an environment
-  variable in the platform's dashboard (instead of a `.env` file), and set
-  the start command to `python bot.py`.
+- **Railway**: see the dedicated section below.
+- **Other low-cost platforms** (Render, Fly.io): push this folder as a
+  repo, set `TELEGRAM_BOT_TOKEN` as an environment variable in the
+  platform's dashboard (instead of a `.env` file), and set the start
+  command to `python bot.py`.
 - **Google Cloud Run / a serverless platform**: this would require
   switching from polling (`run_polling`) to a webhook — ask if you'd like
   a webhook-based version instead; it's a fairly small change.
@@ -110,6 +112,38 @@ stays online:
 Wherever you host it, treat the bot token like a password: set it as an
 environment variable / secret in that platform rather than hardcoding it
 in the code.
+
+### Deploying on Railway
+
+1. Push this folder to a GitHub repo (or use Railway's CLI to deploy the
+   folder directly) — but don't commit your real `.env` file. Add a
+   `.gitignore` with `.env` in it if you haven't already.
+2. In Railway, create a new service from that repo.
+3. Go to the service's **Variables** tab and add `TELEGRAM_BOT_TOKEN` with
+   your real token. Railway injects it as an environment variable, so
+   `os.environ.get("TELEGRAM_BOT_TOKEN")` in `bot.py` picks it up
+   automatically — no `.env` file needed on Railway.
+4. Railway should auto-detect the `Procfile` included here (`worker:
+   python bot.py`) and use it as the start command. If it doesn't, set the
+   **Start Command** manually in the service's Settings tab to
+   `python bot.py`.
+5. Leave **public networking / a domain disabled** for this service. The
+   bot uses polling, not a webhook, so it never listens on an HTTP port —
+   if Railway tries to health-check it as a web service, it may get killed
+   for "failing" a check it was never meant to pass.
+6. Deploy. Check the **Deployments → Logs** tab for `Bot starting
+   (polling)...` to confirm it's running.
+
+A couple of Railway-specific things worth knowing:
+
+- **Every redeploy restarts the process**, which clears the bot's
+  in-memory conversation state. Anyone mid-conversation at that moment will
+  need to send `/start` again — not a bug, just how in-memory state and
+  redeploys interact.
+- **Billing**: this is a long-running process (polling never stops), so
+  Railway bills it for continuous uptime rather than per-request. Fine for
+  a low-traffic internal tool, but worth checking your plan/usage if cost
+  matters.
 
 ## Notes on the data
 
