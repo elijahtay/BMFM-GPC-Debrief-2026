@@ -193,7 +193,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 def build_application() -> Application:
-    token = os.environ.get("8804081591:AAHwUfribEBPKhW_9ldEmW62fhXr-GTs1dk")
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         raise RuntimeError(
             "TELEGRAM_BOT_TOKEN is not set. Copy .env.example to .env and fill it in."
